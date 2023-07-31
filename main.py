@@ -52,7 +52,7 @@ for lang in languages['languages']:
 
 # Ask the user which language they want to converse in
 user_language_code = input(
-    "Please provide the code of the language that you would like to talk with me. Example: de fuer Deutscher, pt para Português, en for English. ONLY DE CODE, PLEASE: ")
+    "Please provide the code of the language that you would like to talk with me. Example: de fuer Deutscher, pt para Português, en for English. ONLY DE CODE, PLEASE: ").lower()
 
 # Get the user chosen language
 user_language = [lang for lang in languages['languages']
@@ -60,10 +60,10 @@ user_language = [lang for lang in languages['languages']
 
 # Check if the chosen language exists
 if not user_language:
-    print("Idioma selecionado não disponível.")
+    print("Sorry, I do not get it. Please try again with a valid code. ")
     exit()
 
-# Variables to store translations of 'você' and 'Assistente'
+# Variables to store translations of 'you' and 'Assistente'
 you_translation = None
 assistant_translation = None
 
@@ -74,6 +74,7 @@ translation = language_translator.translate(
     source='pt',
     target='en'
 ).get_result()
+
 
 you_translation = language_translator.translate(
     text=translation['translations'][0]['translation'],
@@ -88,7 +89,7 @@ message_input['text'] = you_translation
 while message_input['text'] != 'quit':
 
     # Get user input in the chosen language
-    user_input_code = input(':  ')
+    user_input_code = input(f'{you_translation}:  ')
 
     # Translate user input to English
     translation = language_translator.translate(
