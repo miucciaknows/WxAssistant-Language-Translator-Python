@@ -1,4 +1,3 @@
-
 from ibm_watson import AssistantV2
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 from ibm_watson import LanguageTranslatorV3
@@ -10,7 +9,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-
 API_Key_Translator = os.environ["API_Key_Translator"]
 Url_Translator = os.environ["Url_Translator"]
 
@@ -19,8 +17,7 @@ URL_Assistant = os.environ["URL_Assistant"]
 ID_Assistant = os.environ["ID_Assistant"]
 
 # Creating Assistant service object.
-assistant_authenticator = IAMAuthenticator(
-    API_Key_WA)
+assistant_authenticator = IAMAuthenticator(API_Key_WA)
 assistant = AssistantV2(
     version='2021-11-27',
     authenticator=assistant_authenticator
@@ -42,28 +39,69 @@ message_input = {
     'text': ''
 }
 
-# Contex to maintain the conversation between user and WA.
+# Context to maintain the conversation between user and WA.
 context = {}
 
-# input/output loop
+# Get all available languages for translation
+languages = language_translator.list_identifiable_languages().get_result()
+
+# Print the available languages and their codes
+print("Languages Available:")
+for lang in languages['languages']:
+    print(f"- {lang['name']} ({lang['language']})")
+
+# Ask the user which language they want to converse in
+user_language_code = input(
+    "Please provide the code of the language that you would like to talk with me. Example: de fuer Deutscher, pt para Português, en for English. ONLY DE CODE, PLEASE: ")
+
+# Get the user chosen language
+user_language = [lang for lang in languages['languages']
+                 if lang['language'] == user_language_code]
+
+# Check if the chosen language exists
+if not user_language:
+    print("Idioma selecionado não disponível.")
+    exit()
+
+# Variables to store translations of 'você' and 'Assistente'
+you_translation = None
+assistant_translation = None
+
+# Translate the word 'você' to the chosen language via English
+you_text_pt = 'você'
+translation = language_translator.translate(
+    text=you_text_pt,
+    source='pt',
+    target='en'
+).get_result()
+
+you_translation = language_translator.translate(
+    text=translation['translations'][0]['translation'],
+    source='en',
+    target=user_language_code
+).get_result()['translations'][0]['translation']
+
+# Insert the translated word 'você' into the input message for the Assistant
+message_input['text'] = you_translation
+
+# Input/output loop
 while message_input['text'] != 'quit':
 
-    # Get user input in Portuguese
-    user_input_pt = input('Você: ')
+    # Get user input in the chosen language
+    user_input_code = input(':  ')
 
-    # Translate user input from Portuguese to English
+    # Translate user input to English
     translation = language_translator.translate(
-        text=user_input_pt,
-        source='pt',
+        text=user_input_code,
+        source=user_language_code,
         target='en'
     ).get_result()
 
     user_input_en = translation['translations'][0]['translation']
 
-    # Sending translated input to the Assistant.
+    # Send translated input to the Assistant.
     message_input['text'] = user_input_en
 
-    # I'm using this loop below to handle with multiple responses coming from NeuralSeek.
     complete_response = False
     assistant_response_en = ''
 
@@ -92,21 +130,27 @@ while message_input['text'] != 'quit':
             result['output']['generic']) > 0 and not result['output']['generic'][0].get('more_to_come', False)
 
     if not assistant_response_en.strip():
-        # Sorry, i did not understand Assistant's answer.
-        assistant_response_en = "Desculpe, não entendi a resposta do assistente."
-        #
+        assistant_response_en = "Sorry, i don't get it the Assistant response"
 
-    # Translate Assistant's response back to Portuguese
+    # Detect the language of the Assistant's response
+    detected_language = language_translator.identify(
+        text=assistant_response_en
+    ).get_result()
+
+    # Get the detected language code
+    detected_language_code = detected_language['languages'][0]['language']
+
+    # Translate the Assistant's response to the chosen language via English
     translation = language_translator.translate(
         text=assistant_response_en.strip(),
         source='en',
-        target='pt'
+        target=user_language_code  # Translate back to the chosen language
     ).get_result()
 
-    assistant_response_pt = translation['translations'][0]['translation']
+    assistant_response_user_lang = translation['translations'][0]['translation']
 
-    # Assistant's response in Portuguese
-    print("Assistente:", assistant_response_pt)
+    # Print the Assistant's response in the chosen language
+    print(
+        f"Assistente ({user_language[0]['name']}):", assistant_response_user_lang)
 
-    # Waiting for a moment before allowing the user to input again
     time.sleep(1)
