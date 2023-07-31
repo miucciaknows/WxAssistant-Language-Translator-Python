@@ -28,3 +28,11 @@ To run the code, follow the steps below:
 6. Type `python3 main.py`
 
 ![1](./Images/001.png)
+
+Then provide **only the code of the language** that you would like to start a conversation with asssistant
+
+![2](./Images/002.png)
+
+Now send your question and wait for Assistant's answer.
+
+![3](./Images/003.png)
